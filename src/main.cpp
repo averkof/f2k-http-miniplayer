@@ -1,11 +1,11 @@
 #include <algorithm>
 #include <string>
 #include <winsock2.h>
-#include <windows.h>
 #include <dwmapi.h>
 #include <gdiplus.h>
 #include "httplib.h"
 #include "network.h"
+#include "grphics.h"
 
 #define WM_APP_CHANGED (WM_APP + 1)
 
@@ -29,33 +29,6 @@ NetworkHandler *network_handler         = nullptr;
 Gdiplus::Bitmap *song_artwork_display   = nullptr;
 
 //look through later again
-Gdiplus::Bitmap *bitmap_from_memory(const string &image_bytes) { //converts string image data into drawable bitmap
-    if (image_bytes.empty()) return nullptr;
-
-    HGLOBAL h = GlobalAlloc(GMEM_MOVEABLE, image_bytes.size());
-    if (!h) return nullptr;
-    memcpy(GlobalLock(h), image_bytes.data(), image_bytes.size());
-    GlobalUnlock(h);
-
-    IStream *input_stream = nullptr;
-    if (CreateStreamOnHGlobal(h, TRUE, &input_stream) != S_OK) {
-        GlobalFree(h);
-        return nullptr;
-    }
-
-    Gdiplus::Bitmap *source = Gdiplus::Bitmap::FromStream(input_stream);
-    Gdiplus::Bitmap *scaled = nullptr;
-    if (source && source->GetLastStatus() == Gdiplus::Ok) {
-        scaled = source->Clone(0, 0, WINDOW_HEIGHT, WINDOW_HEIGHT, PixelFormat32bppPARGB);
-        Gdiplus::Graphics g(scaled);
-        g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-        g.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHalf);
-        g.DrawImage(source, 0, 0, WINDOW_HEIGHT, WINDOW_HEIGHT);
-    }
-    delete source;
-    input_stream->Release();
-    return scaled;
-}
 
 void draw_text(HDC &hdc, const wstring *str, LPRECT rect) {
     DrawTextW(hdc, str->c_str(), (int)str->size(), rect, DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE | DT_NOPREFIX);
@@ -88,7 +61,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
 
             //update artwork
-            Gdiplus::Bitmap *fresh_cover = bitmap_from_memory(network_handler->song_details.artwork);
+            Gdiplus::Bitmap *fresh_cover = bitmap_from_memory(network_handler->song_details.artwork, WINDOW_HEIGHT);
             delete song_artwork_display;
             song_artwork_display = fresh_cover;
             string().swap(network_handler->song_details.artwork);
@@ -111,10 +84,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             //draw artwork
             if (song_artwork_display) {
-                Gdiplus::Graphics g(hdc);
-                g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-                g.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHalf);
-                g.DrawImage(song_artwork_display, 0, 0, WINDOW_HEIGHT, WINDOW_HEIGHT);
+                bitmap_draw(hdc, song_artwork_display, WINDOW_HEIGHT);    
             }
 
             //draw text lines
