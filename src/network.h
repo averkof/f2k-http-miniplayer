@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <regex>
 #include <atomic>
@@ -94,15 +95,15 @@ class NetworkHandler {
             local_client.stop();
         }
 
-        void update_details(SongDetails &song_details) {
+        void update_details() {
             smatch detail_matches;
             auto res = local_client.Get("/api/query", httplib::Params{{"player", "true"}, {"trcolumns", "%artist%,%album%,%title%"}});
             if (res->status != API_QUERY_SUCCESS_CODE) return;
             regex_search(res->body, detail_matches, SONG_SEARCH_PATTERN);
-            song_details.artist     = widen_string(detail_matches[1].str());
-            song_details.album      = widen_string(detail_matches[2].str());
-            song_details.title      = widen_string(detail_matches[3].str());
-            song_details.duration   = stod(detail_matches[4].str());
-            song_details.artwork    = fetch_artwork();
+            this->song_details.artist     = widen_string(detail_matches[1].str());
+            this->song_details.album      = widen_string(detail_matches[2].str());
+            this->song_details.title      = widen_string(detail_matches[3].str());
+            this->song_details.duration   = stod(detail_matches[4].str());
+            this->song_details.artwork    = fetch_artwork();
         }
 };

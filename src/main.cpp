@@ -56,7 +56,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_APP_CHANGED: {
             //update song details
             if (network_handler) {
-                network_handler->update_details(network_handler->song_details);
+                network_handler->update_details();
                 InvalidateRect(hwnd, NULL, TRUE);
             }
 
@@ -84,7 +84,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             //draw artwork
             if (song_artwork_display) {
-                bitmap_draw(hdc, song_artwork_display, WINDOW_HEIGHT);    
+                bitmap_draw(hdc, song_artwork_display, WINDOW_HEIGHT);
             }
 
             //draw text lines
