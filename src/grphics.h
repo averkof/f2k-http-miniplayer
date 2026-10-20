@@ -13,6 +13,10 @@ HFONT create_font(int font_size, int font_weight, DWORD is_italic, DWORD is_unde
     ); 
 }
 
+void draw_text(HDC &hdc, const wstring *str, LPRECT rect) {
+    DrawTextW(hdc, str->c_str(), (int)str->size(), rect, DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE | DT_NOPREFIX);
+}
+
 void bitmap_draw(auto graphics, Gdiplus::Bitmap *bitmap_ptr, int size) {
     Gdiplus::Graphics g(graphics);
     g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
