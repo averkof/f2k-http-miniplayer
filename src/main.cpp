@@ -13,7 +13,6 @@
 using namespace std;
 using std::min; using std::max;
 
-const wchar_t FONT_NAME[]       = L"Consolas";
 const char g_szClassName[]      = "myWindowClass";
 const int SIDE_MARGIN           = 10;
 const int TOP_MARGIN            = 10;
@@ -25,6 +24,7 @@ const COLORREF BACKGROUND_COLOR = RGB(18, 18, 18);
 
 HFONT font          = NULL;
 HBRUSH background   = NULL;
+wchar_t FONT_NAME[] = L"Consolas";
 
 NetworkHandler *network_handler         = nullptr;
 Gdiplus::Bitmap *song_artwork_display   = nullptr;
@@ -42,8 +42,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             else
                 MessageBox(hwnd, "Could not load large icon!", "Error", MB_OK | MB_ICONERROR);
             
-            //load font and background
-            font = CreateFontW(FONT_SIZE, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, FONT_NAME); //bullshit call
+            //load font and background brush
+            font = create_font(FONT_SIZE, FW_NORMAL, FALSE, FALSE, FALSE, FONT_NAME);
             background = CreateSolidBrush(BACKGROUND_COLOR);
         }
         break;
@@ -53,6 +53,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             //update song details
             if (network_handler) {
                 network_handler->update_details();
+                network_handler->update_position();
                 InvalidateRect(hwnd, NULL, TRUE);
             }
 
@@ -66,8 +67,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         //check later
         case WM_POS_CHANGED: {
             if (network_handler) {
+                RECT update_region;
                 network_handler->update_position();
-                InvalidateRect(hwnd, NULL, TRUE);
+                update_region.left = SIDE_MARGIN + WINDOW_HEIGHT; update_region.right = update_region.left + 117;
+                update_region.top = TOP_MARGIN + 3 * LINE_HEIGHT; update_region.bottom = update_region.top + LINE_HEIGHT;
+                InvalidateRect(hwnd, &update_region, TRUE);
             }
         }
         break;
@@ -87,7 +91,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             //draw artwork
             if (song_artwork_display) {
-                bitmap_draw(hdc, song_artwork_display, WINDOW_HEIGHT);    
+                bitmap_draw(hdc, song_artwork_display, WINDOW_HEIGHT);
             }
 
             //draw text lines

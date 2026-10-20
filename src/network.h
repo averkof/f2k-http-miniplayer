@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <regex>
 #include <atomic>
@@ -14,7 +15,7 @@ const int API_QUERY_SUCCESS_CODE{200};
 
 struct SongDetails {
     wstring artist, album, title, time;
-    int duration{ 0 }, position{ 0 };
+    int duration{0}, position{0};
     string artwork;
 };
 
@@ -45,6 +46,12 @@ class NetworkHandler {
                     artwork = move(res->body);
                 }
             return artwork;
+        }
+
+        void add_leading_zeros(string &str, size_t width) {
+            while (str.size() < width) {
+                str.insert(str.begin(), '0');
+            }
         }
 
         void watch_api_stream() {
@@ -100,12 +107,14 @@ class NetworkHandler {
         }
 
         void format_time_display() {
-            int pos_min{song_details.position / 60};
-            int pos_sec{song_details.position % 60};
-            int dur_min{song_details.duration / 60};
-            int dur_sec{song_details.duration % 60};
-            string time_pos = to_string(pos_min) + ":" + to_string(pos_sec);
-            string time_dur = to_string(dur_min) + ":" + to_string(dur_sec);
+            string pos_min{to_string(song_details.position / 60)};
+            string pos_sec{to_string(song_details.position % 60)};
+            string dur_min{to_string(song_details.duration / 60)};
+            string dur_sec{to_string(song_details.duration % 60)};
+            add_leading_zeros(pos_sec, 2);
+            add_leading_zeros(dur_sec, 2);
+            string time_pos = pos_min + ":" + pos_sec;
+            string time_dur = dur_min + ":" + dur_sec;
             string time = time_pos + " / " + time_dur;
             song_details.time = widen_string(time);
         }
