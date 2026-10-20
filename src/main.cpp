@@ -8,6 +8,7 @@
 #include "grphics.h"
 
 #define WM_APP_CHANGED (WM_APP + 1)
+#define WM_POS_CHANGED (WM_APP + 2)
 
 using namespace std;
 using std::min; using std::max;
@@ -29,11 +30,6 @@ NetworkHandler *network_handler         = nullptr;
 Gdiplus::Bitmap *song_artwork_display   = nullptr;
 
 //look through later again
-
-void draw_text(HDC &hdc, const wstring *str, LPRECT rect) {
-    DrawTextW(hdc, str->c_str(), (int)str->size(), rect, DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE | DT_NOPREFIX);
-}
-
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch(msg) {
         case WM_CREATE: {
@@ -68,6 +64,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         break;
         //check later
+        case WM_POS_CHANGED: {
+            if (network_handler) {
+                network_handler->update_position();
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+        }
+        break;
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
@@ -166,7 +169,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     int pref = DWMWCP_DONOTROUND;
     DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(pref));
 
-    network_handler = new NetworkHandler(PostMessage, hwnd, WM_APP_CHANGED, 0, 0);
+    network_handler = new NetworkHandler(PostMessage, hwnd, WM_APP_CHANGED, WM_POS_CHANGED, 0, 0);
     network_handler->start();
 
     ShowWindow(hwnd, nCmdShow);
