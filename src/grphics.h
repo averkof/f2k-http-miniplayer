@@ -4,6 +4,19 @@
 
 using namespace std;
 
+HFONT create_font(int font_size, int font_weight, DWORD is_italic, DWORD is_underline, DWORD is_strikethrough, WCHAR *font_name) {
+    return CreateFontW(
+        font_size, 0, 0, 0, 
+        font_weight, is_italic, is_underline, is_strikethrough, 
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
+        DEFAULT_PITCH | FF_DONTCARE, font_name
+    ); 
+}
+
+void draw_text(HDC &hdc, const wstring *str, LPRECT rect) {
+    DrawTextW(hdc, str->c_str(), (int)str->size(), rect, DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE | DT_NOPREFIX);
+}
+
 void bitmap_draw(auto graphics, Gdiplus::Bitmap *bitmap_ptr, int size) {
     Gdiplus::Graphics g(graphics);
     g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
