@@ -15,7 +15,7 @@ const int API_QUERY_SUCCESS_CODE{200};
 
 struct SongDetails {
     wstring artist, album, title, time;
-    int duration{ 0 }, position{ 0 };
+    int duration{0}, position{0};
     string artwork;
 };
 
@@ -46,6 +46,12 @@ class NetworkHandler {
                     artwork = move(res->body);
                 }
             return artwork;
+        }
+
+        void add_leading_zeros(string &str, size_t width) {
+            while (str.size() < width) {
+                str.insert(str.begin(), '0');
+            }
         }
 
         void watch_api_stream() {
@@ -100,38 +106,29 @@ class NetworkHandler {
             local_client.stop();
         }
 
-<<<<<<< HEAD
-=======
         void format_time_display() {
-            int pos_min{song_details.position / 60};
-            int pos_sec{song_details.position % 60};
-            int dur_min{song_details.duration / 60};
-            int dur_sec{song_details.duration % 60};
-            string time_pos = to_string(pos_min) + ":" + to_string(pos_sec);
-            string time_dur = to_string(dur_min) + ":" + to_string(dur_sec);
+            string pos_min{to_string(song_details.position / 60)};
+            string pos_sec{to_string(song_details.position % 60)};
+            string dur_min{to_string(song_details.duration / 60)};
+            string dur_sec{to_string(song_details.duration % 60)};
+            add_leading_zeros(pos_sec, 2);
+            add_leading_zeros(dur_sec, 2);
+            string time_pos = pos_min + ":" + pos_sec;
+            string time_dur = dur_min + ":" + dur_sec;
             string time = time_pos + " / " + time_dur;
             song_details.time = widen_string(time);
         }
 
->>>>>>> 1f008e46e50f054dfce37acecfd6109986b445ed
         void update_details() {
             smatch detail_matches;
             auto res = local_client.Get("/api/query", httplib::Params{{"player", "true"}, {"trcolumns", "%artist%,%album%,%title%"}});
             if (res->status != API_QUERY_SUCCESS_CODE) return;
             regex_search(res->body, detail_matches, SONG_SEARCH_PATTERN);
-<<<<<<< HEAD
-            this->song_details.artist     = widen_string(detail_matches[1].str());
-            this->song_details.album      = widen_string(detail_matches[2].str());
-            this->song_details.title      = widen_string(detail_matches[3].str());
-            this->song_details.duration   = stod(detail_matches[4].str());
-            this->song_details.artwork    = fetch_artwork();
-=======
             song_details.artist     = widen_string(detail_matches[1].str());
             song_details.album      = widen_string(detail_matches[2].str());
             song_details.title      = widen_string(detail_matches[3].str());
             song_details.duration   = 1 + stoi(detail_matches[4].str());
             song_details.artwork    = fetch_artwork();
->>>>>>> 1f008e46e50f054dfce37acecfd6109986b445ed
         }
 
         void update_position() {
