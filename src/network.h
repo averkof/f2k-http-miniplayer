@@ -15,8 +15,9 @@ const int API_QUERY_SUCCESS_CODE{200};
 
 struct SongDetails {
     wstring artist, album, title, time;
-    int duration{0}, position{0};
+    double duration{0}, position{0};
     string artwork;
+    unsigned long long sample_tick;
 };
 
 class NetworkHandler {
@@ -28,8 +29,6 @@ class NetworkHandler {
         HWND hwnd;
         UINT msg_update_details;
         UINT msg_update_position;
-        WPARAM wParam;
-        LPARAM lParam;
 
         wstring widen_string(const string &str) {
             if (str.empty()) return L"Nothing Playing";
@@ -71,10 +70,10 @@ class NetworkHandler {
                     previous_song = current_song;
                     current_song = title_match[1].str();
                     if (current_song != previous_song) {
-                        update_function(hwnd, msg_update_details, wParam, lParam);
+                        update_function(hwnd, msg_update_details, 0, 0);
                     }
                 } else {
-                    update_function(hwnd, msg_update_position, wParam, lParam);
+                    update_function(hwnd, msg_update_position, 0, 0);
                 }
 
                 return worker_running.load();
@@ -85,12 +84,10 @@ class NetworkHandler {
     public:
         SongDetails song_details;
         const wstring *details[4] = { &song_details.title, &song_details.album, &song_details.artist, &song_details.time };
-        NetworkHandler(WINBOOL (*funcptr)(HWND, UINT, WPARAM, LPARAM), HWND hwnd, UINT detail_msg, UINT pos_msg, WPARAM wParam, LPARAM lParam) {
+        NetworkHandler(WINBOOL (*funcptr)(HWND, UINT, WPARAM, LPARAM), HWND hwnd, UINT detail_msg, UINT pos_msg) {
             this->hwnd = hwnd;
             this->msg_update_details = detail_msg;
             this->msg_update_position = pos_msg;
-            this->wParam = wParam;
-            this->lParam = lParam;
             update_function = funcptr;
         }
 
@@ -106,11 +103,16 @@ class NetworkHandler {
             local_client.stop();
         }
 
+        void update_pos() {
+            double double_time = (GetTickCount64() - song_details.sample_tick) / 1000.0;
+            song_details.position += double_time;
+        }
+
         void format_time_display() {
-            string pos_min{to_string(song_details.position / 60)};
-            string pos_sec{to_string(song_details.position % 60)};
-            string dur_min{to_string(song_details.duration / 60)};
-            string dur_sec{to_string(song_details.duration % 60)};
+            string pos_min{to_string(static_cast<int>(song_details.position) / 60)};
+            string pos_sec{to_string(static_cast<int>(song_details.position) % 60)};
+            string dur_min{to_string(static_cast<int>(song_details.duration) / 60)};
+            string dur_sec{to_string(static_cast<int>(song_details.duration) % 60)};
             add_leading_zeros(pos_sec, 2);
             add_leading_zeros(dur_sec, 2);
             string time_pos = pos_min + ":" + pos_sec;
@@ -120,6 +122,7 @@ class NetworkHandler {
         }
 
         void update_details() {
+            song_details.sample_tick = GetTickCount64();
             smatch detail_matches;
             auto res = local_client.Get("/api/query", httplib::Params{{"player", "true"}, {"trcolumns", "%artist%,%album%,%title%"}});
             if (res->status != API_QUERY_SUCCESS_CODE) return;
@@ -127,7 +130,7 @@ class NetworkHandler {
             song_details.artist     = widen_string(detail_matches[1].str());
             song_details.album      = widen_string(detail_matches[2].str());
             song_details.title      = widen_string(detail_matches[3].str());
-            song_details.duration   = 1 + stoi(detail_matches[4].str());
+            song_details.duration   = stod(detail_matches[4].str());
             song_details.artwork    = fetch_artwork();
         }
 
@@ -136,7 +139,7 @@ class NetworkHandler {
             auto res = local_client.Get("/api/query", httplib::Params{{"player", "true"}});
             if (res->status != API_QUERY_SUCCESS_CODE) return;
             regex_search(res->body, detail_matches, POSIT_SEARCH_PATTERN);
-            song_details.position = stoi(detail_matches[1].str());
+            song_details.position = stod(detail_matches[1].str());
             format_time_display();
         }
 };

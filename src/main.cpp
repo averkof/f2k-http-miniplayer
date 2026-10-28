@@ -76,6 +76,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         break;
         case WM_PAINT: {
+            
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
@@ -173,7 +174,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     int pref = DWMWCP_DONOTROUND;
     DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(pref));
 
-    network_handler = new NetworkHandler(PostMessage, hwnd, WM_APP_CHANGED, WM_POS_CHANGED, 0, 0);
+    network_handler = new NetworkHandler(PostMessage, hwnd, WM_APP_CHANGED, WM_POS_CHANGED);
     network_handler->start();
 
     ShowWindow(hwnd, nCmdShow);
