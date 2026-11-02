@@ -106,6 +106,7 @@ class NetworkHandler {
         void update_pos() {
             double double_time = (GetTickCount64() - song_details.sample_tick) / 1000.0;
             song_details.position += double_time;
+            song_details.sample_tick = GetTickCount64();
         }
 
         void format_time_display() {

@@ -7,8 +7,9 @@
 #include "network.h"
 #include "grphics.h"
 
-#define WM_APP_CHANGED (WM_APP + 1)
-#define WM_POS_CHANGED (WM_APP + 2)
+#define IDT_PROGRESS    3
+#define WM_APP_CHANGED  (WM_APP + 1)
+#define WM_POS_CHANGED  (WM_APP + 2)
 
 using namespace std;
 using std::min; using std::max;
@@ -20,19 +21,31 @@ const int WINDOW_LENGTH         = 500;
 const int WINDOW_HEIGHT         = 200;
 const int FONT_SIZE             = -15;
 const int LINE_HEIGHT           = 30;
+const int TIMER_REFRESH         = 250;
 const COLORREF BACKGROUND_COLOR = RGB(18, 18, 18);
 
 HFONT font          = NULL;
 HBRUSH background   = NULL;
 wchar_t FONT_NAME[] = L"Consolas";
+RECT update_region;
 
 NetworkHandler *network_handler         = nullptr;
 Gdiplus::Bitmap *song_artwork_display   = nullptr;
+
+VOID CALLBACK PositionTimerProc(HWND hwnd, UINT, UINT_PTR, DWORD) {
+    SendMessage(hwnd, WM_POS_CHANGED, 0, 0);
+}
 
 //look through later again
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch(msg) {
         case WM_CREATE: {
+
+            update_region.left = SIDE_MARGIN + WINDOW_HEIGHT;
+            update_region.right = update_region.left + 117;
+            update_region.top = TOP_MARGIN + 3 * LINE_HEIGHT;
+            update_region.bottom = update_region.top + LINE_HEIGHT;
+
             HICON hIcon;
 
             //load icon and display
@@ -54,7 +67,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if (network_handler) {
                 network_handler->update_details();
                 network_handler->update_position();
-                InvalidateRect(hwnd, NULL, TRUE);
+                InvalidateRect(hwnd, NULL, FALSE);
             }
 
             //update artwork
@@ -67,11 +80,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         //check later
         case WM_POS_CHANGED: {
             if (network_handler) {
-                RECT update_region;
                 network_handler->update_position();
-                update_region.left = SIDE_MARGIN + WINDOW_HEIGHT; update_region.right = update_region.left + 117;
-                update_region.top = TOP_MARGIN + 3 * LINE_HEIGHT; update_region.bottom = update_region.top + LINE_HEIGHT;
-                InvalidateRect(hwnd, &update_region, TRUE);
+                InvalidateRect(hwnd, &update_region, FALSE);
             }
         }
         break;
@@ -91,7 +101,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             FillRect(hdc, &r, background);
 
             //draw artwork
-            if (song_artwork_display) {
+            RECT art_rect = {0, 0, WINDOW_HEIGHT, WINDOW_HEIGHT};
+            RECT tmp;
+            if (song_artwork_display && IntersectRect(&tmp, &ps.rcPaint, &art_rect)) {
                 bitmap_draw(hdc, song_artwork_display, WINDOW_HEIGHT);
             }
 
@@ -110,7 +122,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_KEYDOWN:
             if (wParam == VK_ESCAPE) DestroyWindow(hwnd);
         break;
+        case WM_ERASEBKGND:
+            return 1;
         case WM_DESTROY:
+            KillTimer(hwnd, IDT_PROGRESS);
             network_handler->stop();
             delete network_handler;
             DeleteObject(font);
@@ -122,7 +137,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
     WNDCLASSEX wc;
     HWND hwnd;
     MSG Msg;
@@ -176,6 +192,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     network_handler = new NetworkHandler(PostMessage, hwnd, WM_APP_CHANGED, WM_POS_CHANGED);
     network_handler->start();
+    SetTimer(hwnd, IDT_PROGRESS, TIMER_REFRESH, PositionTimerProc);
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
